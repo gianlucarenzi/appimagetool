@@ -65,6 +65,7 @@ typedef enum {
     fARCH_armhf,
     fARCH_aarch64,
     fARCH_riscv64,
+    fARCH_ppc64,
     fARCH_COUNT
 } fARCH;
 
@@ -307,6 +308,8 @@ gchar* archToName(fARCH arch) {
             return "x86_64";
         case fARCH_riscv64:
             return "riscv64";
+        case fARCH_ppc64:
+            return "ppc64";
         default:
             return "unknown";
     }
@@ -323,11 +326,13 @@ gchar* getArchName(bool* archs) {
         return archToName(fARCH_aarch64);
     else if (archs[fARCH_riscv64])
         return archToName(fARCH_riscv64);
+    else if (archs[fARCH_ppc64])
+        return archToName(fARCH_ppc64);
     else
         return "all";
 }
 
-void extract_arch_from_e_machine_field(int16_t e_machine, const gchar* sourcename, bool* archs) {
+void extract_arch_from_e_machine_field(int16_t e_machine, bool big_endian, const gchar* sourcename, bool* archs) {
     if (e_machine == 3) {
         archs[fARCH_i686] = 1;
         if(verbose)
@@ -356,6 +361,13 @@ void extract_arch_from_e_machine_field(int16_t e_machine, const gchar* sourcenam
         archs[fARCH_riscv64] = 1;
         if(verbose)
             fprintf(stderr, "%s used for determining architecture %s\n", sourcename, archToName(fARCH_riscv64));
+    }
+
+    /* EM_PPC64 is also little endian ppc64le, which is not supported (yet): only big endian ppc64 here */
+    if (e_machine == 21 && big_endian) {
+        archs[fARCH_ppc64] = 1;
+        if(verbose)
+            fprintf(stderr, "%s used for determining architecture %s\n", sourcename, archToName(fARCH_ppc64));
     }
 }
 
@@ -395,12 +407,17 @@ void extract_arch_from_text(gchar *archname, const gchar* sourcename, bool* arch
                 archs[fARCH_riscv64] = 1;
                 if (verbose)
                     fprintf(stderr, "%s used for determining architecture RISC-V riscv64\n", sourcename);
+            } else if (g_ascii_strncasecmp("ppc64", archname, 6) == 0 ||
+                       g_ascii_strncasecmp("powerpc64", archname, 10) == 0) {
+                archs[fARCH_ppc64] = 1;
+                if (verbose)
+                    fprintf(stderr, "%s used for determining architecture PowerPC ppc64 (big endian)\n", sourcename);
             }
         }
     }
 }
 
-int16_t read_elf_e_machine_field(const gchar* file_path) {
+int16_t read_elf_e_machine_field(const gchar* file_path, bool* big_endian) {
     int16_t e_machine = 0x00;
     unsigned char ei_data = 0;
     FILE* file = 0;
@@ -414,13 +431,15 @@ int16_t read_elf_e_machine_field(const gchar* file_path) {
         fclose(file);
         e_machine = (ei_data == 2) ? GINT16_FROM_BE(e_machine) : GINT16_FROM_LE(e_machine);
     }
+    *big_endian = (ei_data == 2);
 
     return e_machine;
 }
 
 void guess_arch_of_file(const gchar *archfile, bool* archs) {
-    int16_t e_machine_field = read_elf_e_machine_field(archfile);
-    extract_arch_from_e_machine_field(e_machine_field, archfile, archs);
+    bool big_endian = false;
+    int16_t e_machine_field = read_elf_e_machine_field(archfile, &big_endian);
+    extract_arch_from_e_machine_field(e_machine_field, big_endian, archfile, archs);
 }
 
 void find_arch(const gchar *real_path, const gchar *pattern, bool* archs) {
