@@ -19,6 +19,9 @@ jobs:
             RUNS_ON: ubuntu-24.04-arm
           - ARCH: armhf
             RUNS_ON: ubuntu-24.04-arm
+          - ARCH: riscv64
+            RUNS_ON: ubuntu-24.04
+            QEMU: true
 
     name: Build ${{ matrix.ARCH }}
 
@@ -26,11 +29,17 @@ jobs:
 
     env:
       ARCH: ${{ matrix.ARCH }}
+      RUNTIME_URL_BASE: ${{ vars.RUNTIME_URL_BASE }}
 
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
+
+      # GitHub has no RISC-V runners: the build container runs emulated
+      - name: Set up QEMU
+        if: ${{ matrix.QEMU }}
+        uses: docker/setup-qemu-action@v4
 
       - name: Build in Docker container
         run: |
