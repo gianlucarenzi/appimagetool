@@ -22,6 +22,9 @@ jobs:
           - ARCH: riscv64
             RUNS_ON: ubuntu-24.04
             QEMU: true
+          - ARCH: ppc64le
+            RUNS_ON: ubuntu-24.04
+            QEMU: true
 
     name: Build ${{ matrix.ARCH }}
 
@@ -36,7 +39,7 @@ jobs:
         with:
           submodules: 'recursive'
 
-      # GitHub has no RISC-V runners: the build container runs emulated
+      # GitHub has no RISC-V and POWER runners: the build container runs emulated
       - name: Set up QEMU
         if: ${{ matrix.QEMU }}
         uses: docker/setup-qemu-action@v4

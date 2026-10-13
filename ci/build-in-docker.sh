@@ -23,6 +23,9 @@ case "$ARCH" in
     riscv64)
         platform=linux/riscv64
         ;;
+    ppc64le)
+        platform=linux/ppc64le
+        ;;
     *)
         echo "unknown architecture: $ARCH"
         exit 2

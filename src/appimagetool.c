@@ -66,6 +66,7 @@ typedef enum {
     fARCH_aarch64,
     fARCH_riscv64,
     fARCH_ppc64,
+    fARCH_ppc64le,
     fARCH_COUNT
 } fARCH;
 
@@ -310,6 +311,8 @@ gchar* archToName(fARCH arch) {
             return "riscv64";
         case fARCH_ppc64:
             return "ppc64";
+        case fARCH_ppc64le:
+            return "ppc64le";
         default:
             return "unknown";
     }
@@ -328,6 +331,8 @@ gchar* getArchName(bool* archs) {
         return archToName(fARCH_riscv64);
     else if (archs[fARCH_ppc64])
         return archToName(fARCH_ppc64);
+    else if (archs[fARCH_ppc64le])
+        return archToName(fARCH_ppc64le);
     else
         return "all";
 }
@@ -363,11 +368,12 @@ void extract_arch_from_e_machine_field(int16_t e_machine, bool big_endian, const
             fprintf(stderr, "%s used for determining architecture %s\n", sourcename, archToName(fARCH_riscv64));
     }
 
-    /* EM_PPC64 is also little endian ppc64le, which is not supported (yet): only big endian ppc64 here */
-    if (e_machine == 21 && big_endian) {
-        archs[fARCH_ppc64] = 1;
+    /* EM_PPC64: the byte order tells big endian ppc64 from little endian ppc64le */
+    if (e_machine == 21) {
+        fARCH arch = big_endian ? fARCH_ppc64 : fARCH_ppc64le;
+        archs[arch] = 1;
         if(verbose)
-            fprintf(stderr, "%s used for determining architecture %s\n", sourcename, archToName(fARCH_ppc64));
+            fprintf(stderr, "%s used for determining architecture %s\n", sourcename, archToName(arch));
     }
 }
 
@@ -408,10 +414,18 @@ void extract_arch_from_text(gchar *archname, const gchar* sourcename, bool* arch
                 if (verbose)
                     fprintf(stderr, "%s used for determining architecture RISC-V riscv64\n", sourcename);
             } else if (g_ascii_strncasecmp("ppc64", archname, 6) == 0 ||
-                       g_ascii_strncasecmp("powerpc64", archname, 10) == 0) {
+                       g_ascii_strncasecmp("ppc64be", archname, 8) == 0 ||
+                       g_ascii_strncasecmp("powerpc64", archname, 10) == 0 ||
+                       g_ascii_strncasecmp("powerpc64be", archname, 12) == 0) {
                 archs[fARCH_ppc64] = 1;
                 if (verbose)
                     fprintf(stderr, "%s used for determining architecture PowerPC ppc64 (big endian)\n", sourcename);
+            } else if (g_ascii_strncasecmp("ppc64le", archname, 8) == 0 ||
+                       g_ascii_strncasecmp("ppc64el", archname, 8) == 0 ||
+                       g_ascii_strncasecmp("powerpc64le", archname, 12) == 0) {
+                archs[fARCH_ppc64le] = 1;
+                if (verbose)
+                    fprintf(stderr, "%s used for determining architecture PowerPC ppc64le (little endian)\n", sourcename);
             }
         }
     }
