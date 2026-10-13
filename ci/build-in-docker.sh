@@ -20,6 +20,9 @@ case "$ARCH" in
     aarch64)
         platform=linux/arm64/v8
         ;;
+    riscv64)
+        platform=linux/riscv64
+        ;;
     *)
         echo "unknown architecture: $ARCH"
         exit 2
@@ -29,6 +32,8 @@ esac
 
 # libassuan-static is supported only from 3.19 onwards
 image=alpine:3.19
+# riscv64 images exist only from 3.20 onwards
+[[ "$ARCH" == riscv64 ]] && image=alpine:3.20
 
 repo_root="$(readlink -f "$(dirname "${BASH_SOURCE[0]}")"/..)"
 
