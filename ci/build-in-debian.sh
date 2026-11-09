@@ -73,8 +73,13 @@ if [ -n "$missing" ]; then
     exit 1
 fi
 
-# RUNTIME_URL_BASE: where runtime-$ARCH is downloaded from (e.g. the release of a fork of type2-runtime)
-wget "${RUNTIME_URL_BASE:-https://github.com/AppImage/type2-runtime/releases/download/continuous}"/runtime-"$ARCH"
+# downloaded by ci/download-with-gh.sh, if it ran
+if [[ -s "$repo_root"/downloads/runtime-"$ARCH" ]]; then
+    cp "$repo_root"/downloads/runtime-"$ARCH" .
+else
+    # RUNTIME_URL_BASE: where runtime-$ARCH is downloaded from (e.g. the release of a fork of type2-runtime)
+    wget "${RUNTIME_URL_BASE:-https://github.com/AppImage/type2-runtime/releases/download/continuous}"/runtime-"$ARCH"
+fi
 
 pushd AppDir
 ln -s usr/share/applications/appimagetool.desktop .

@@ -3,3 +3,6 @@ cmake-build-*/
 *.*swp*
 *.bak
 *.AppImage*
+
+# downloaded by ci/download-with-gh.sh
+/downloads/

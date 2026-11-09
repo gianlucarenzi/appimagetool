@@ -35,11 +35,16 @@ jobs:
       # optional repository variable: where runtime-$ARCH is downloaded from
       # (e.g. the release of a fork of type2-runtime); unset, the type2-runtime continuous release
       RUNTIME_URL_BASE: ${{ vars.RUNTIME_URL_BASE }}
+      # for the authenticated downloads of ci/download-with-gh.sh
+      GH_TOKEN: ${{ github.token }}
 
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: 'recursive'
+
+      - name: Download from GitHub with the token
+        run: bash ci/download-with-gh.sh
 
       # GitHub has no RISC-V and POWER runners: the build container runs emulated
       - name: Set up QEMU
@@ -103,6 +108,13 @@ jobs:
           sudo tar -C rootfs -c . | docker import --platform ${{ matrix.PLATFORM }} - debian-ports
           sudo rm -rf rootfs keyring $KEYRING
 
+      - name: Download from GitHub with the token
+        env:
+          ARCH: ${{ matrix.ARCH }}
+          RUNTIME_URL_BASE: ${{ vars.RUNTIME_URL_BASE }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash ci/download-with-gh.sh
+
       - name: Build in the Debian ports container
         run: |
           mkdir -p out
@@ -135,7 +147,10 @@ jobs:
       - name: Create release and upload artifacts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          wget -q https://github.com/TheAssassin/pyuploadtool/releases/download/continuous/pyuploadtool-x86_64.AppImage
+          # authenticated download, wget as fallback
+          gh release download continuous -R TheAssassin/pyuploadtool -p pyuploadtool-x86_64.AppImage \
+            || wget -q https://github.com/TheAssassin/pyuploadtool/releases/download/continuous/pyuploadtool-x86_64.AppImage
           chmod +x pyuploadtool-x86_64.AppImage
           GITHUB_CONTINUOUS_RELEASE_TYPE=stable ./pyuploadtool-x86_64.AppImage **/appimagetool*.AppImage*

@@ -20,7 +20,13 @@ trap cleanup EXIT
 
 pushd "$build_dir"
 
-wget https://github.com/plougher/squashfs-tools/archive/refs/tags/"$version".tar.gz -qO - | tar xvz --strip-components=1
+# downloaded by ci/download-with-gh.sh, if it ran
+repo_root="$(readlink -f "$(dirname "${BASH_SOURCE[0]}")"/..)"
+if [[ -s "$repo_root"/downloads/squashfs-tools-"$version".tar.gz ]]; then
+    tar xvzf "$repo_root"/downloads/squashfs-tools-"$version".tar.gz --strip-components=1
+else
+    wget https://github.com/plougher/squashfs-tools/archive/refs/tags/"$version".tar.gz -qO - | tar xvz --strip-components=1
+fi
 
 cd squashfs-tools
 
